@@ -1,8 +1,14 @@
 import fs from 'fs';
+import path from 'path';
 import admin from 'firebase-admin';
-
 import express from 'express';
+import 'dotenv/config';
 import {db, connectToDb} from './db.js';
+
+//  For deployment Static Build file 
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Setup firebase-admin credentials using "credentials.js" service account create in FBase. 
 // This way we can access fireBase users data, when needed for validations at various places.
@@ -15,6 +21,11 @@ admin.initializeApp({
 
 const app = express();
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '../build')));
+
+app.get(/^(?!\/api).+/, (req,resp)=> {
+    resp.sendFile(path.join(__dirname, '../build/index.html'));
+});
 
 // Middleware to auto-load users info from F-Base, when we receive any user requests.
 app.use( async (req, resp, next) => {
@@ -102,9 +113,11 @@ app.post('/api/articles/:name/comments', async (req, resp) => {
     }
 });
 
+const PORT = process.env.PORT || 8005;
+
 connectToDb(()=> {
     console.log("Connected to database successfully!");
-    app.listen(8005, () => {
-        console.log("Server is listening on port 8005");
+    app.listen(PORT, () => {
+        console.log("Server is listening on port " + PORT);
     });
 })
